@@ -45,7 +45,7 @@ def get_image(sheet, frame, width, height, scale, y_offset):
 
     return image
 
-# animations: frames, vertical position
+# action, frames, vertical position
 ANIMATIONS = {
     "idle": (10, 128),
     "run": (10, 768),
