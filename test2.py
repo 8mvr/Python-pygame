@@ -53,6 +53,7 @@ ANIMATIONS = {
     "fall": (4, 1408),
     "death": (23, 3072)
 }
+
 # ==================== PLAYER ====================
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, sprite_sheet):
