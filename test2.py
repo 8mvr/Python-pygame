@@ -166,10 +166,6 @@ class Player(pygame.sprite.Sprite):
     def draw(self, surface):
         surface.blit(self.image, (self.x, self.y))
 
-class Obstacles(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-
 # ==================== POSITIONS ====================
 player = Player(0, 500, sprite_sheet_image)
 clock = pygame.time.Clock()
