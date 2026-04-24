@@ -166,8 +166,6 @@ class Player(pygame.sprite.Sprite):
     def draw(self, surface):
         surface.blit(self.image, (self.x, self.y))
 
-        # test
-
 # ==================== POSITIONS ====================
 player = Player(0, 500, sprite_sheet_image)
 clock = pygame.time.Clock()
@@ -186,25 +184,22 @@ while run:
         
     keys = pygame.key.get_pressed()
 
-    if keys[pygame.K_LEFT]:
+    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         player.action("run", "left")
         player.vel_x = -player.speed
-    elif keys[pygame.K_RIGHT]:
+    elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         player.action("run", "right")
         player.vel_x = player.speed
     else:
         if player.on_ground:
             player.action("idle")
         player.vel_x = 0
-    
-    # Jump
     if keys[pygame.K_SPACE]:
         player.jump()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        
 
     pygame.display.flip()
 
