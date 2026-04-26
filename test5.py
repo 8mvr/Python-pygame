@@ -28,9 +28,6 @@ GRAVITY = 0.5
 JUMP = -10
 GROUND = SCREEN_HEIGHT - 80
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-ASSETS_DIR = os.path.join(DIR, "assets")
-
 # character sprite
 sprite_sheet_image = pygame.image.load("assets/MainCharacter/male_hero.png").convert_alpha()
 
@@ -294,10 +291,8 @@ blocks = [
     
     # block 3
     Blocks(block_size * 14, SCREEN_HEIGHT - 250, block_size),
-    Blocks(block_size * 15, SCREEN_HEIGHT - 250, block_size),
-    Blocks(block_size * 16, SCREEN_HEIGHT - 250, block_size),
-    
-    # block 4
+
+    Blocks(block_size * 17, SCREEN_HEIGHT - 250, block_size),
     Blocks(block_size * 18, SCREEN_HEIGHT - 250, block_size),
     
 ]
