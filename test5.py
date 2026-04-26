@@ -274,31 +274,82 @@ class Blocks(Objects):
         self.image.blit(block, (0, 0))
         self.mask = pygame.mask.from_surface(self.image)
 
+# ==================== LEVEL ====================
+def map1():
+    """Map 1: Basic platforming"""
+    block_size = 48
+    return [
+        # ground block
+        Blocks(i * block_size, SCREEN_HEIGHT - block_size, block_size)
+        for i in range(10)
+    ] + [
+        # block 2
+        Blocks(block_size * 11, SCREEN_HEIGHT - 150, block_size),
+        Blocks(block_size * 12, SCREEN_HEIGHT - 150, block_size),
+        
+        # block 3
+        Blocks(block_size * 14, SCREEN_HEIGHT - 250, block_size),
+        Blocks(block_size * 15, SCREEN_HEIGHT - 250, block_size),
+        Blocks(block_size * 16, SCREEN_HEIGHT - 250, block_size),
+    ]
+
+def map2():
+    """Map 2: Challenging jumps"""
+    block_size = 48
+    return [
+        # ground block
+        Blocks(i * block_size, SCREEN_HEIGHT - block_size, block_size)
+        for i in range(15)
+    ] + [
+        # Staircase pattern
+        Blocks(block_size * 3, SCREEN_HEIGHT - 150, block_size),
+        Blocks(block_size * 5, SCREEN_HEIGHT - 250, block_size),
+        Blocks(block_size * 7, SCREEN_HEIGHT - 350, block_size),
+        
+        # Gap and platform
+        Blocks(block_size * 11, SCREEN_HEIGHT - 200, block_size),
+        Blocks(block_size * 13, SCREEN_HEIGHT - 250, block_size),
+        Blocks(block_size * 15, SCREEN_HEIGHT - 150, block_size),
+    ]
+
+def map3():
+    """Map 3: Complex layout"""
+    block_size = 48
+    return [
+        # ground block
+        Blocks(i * block_size, SCREEN_HEIGHT - block_size, block_size)
+        for i in range(18)
+    ] + [
+        # Left tower
+        Blocks(block_size * 2, SCREEN_HEIGHT - 150, block_size),
+        Blocks(block_size * 2, SCREEN_HEIGHT - 200, block_size),
+        
+        # Middle platform
+        Blocks(block_size * 6, SCREEN_HEIGHT - 300, block_size),
+        Blocks(block_size * 7, SCREEN_HEIGHT - 300, block_size),
+        
+        # Right tower
+        Blocks(block_size * 11, SCREEN_HEIGHT - 200, block_size),
+        Blocks(block_size * 11, SCREEN_HEIGHT - 250, block_size),
+        Blocks(block_size * 11, SCREEN_HEIGHT - 300, block_size),
+        
+        # Final platform
+        Blocks(block_size * 15, SCREEN_HEIGHT - 150, block_size),
+        Blocks(block_size * 16, SCREEN_HEIGHT - 150, block_size),
+    ]
+
 # ==================== POSITIONS ====================
 player = Player(0, 500, sprite_sheet_image)
 clock = pygame.time.Clock()
 
-# ==================== LEVEL ====================
-block_size = 48
-blocks = [
-    # ground block
-    Blocks(i * block_size, SCREEN_HEIGHT - block_size, block_size)
-    for i in range(10)
-] + [
-    # block 2
-    Blocks(block_size * 11, SCREEN_HEIGHT - 150, block_size),
-    Blocks(block_size * 12, SCREEN_HEIGHT - 150, block_size),
-    
-    # block 3
-    Blocks(block_size * 14, SCREEN_HEIGHT - 250, block_size),
-
-    Blocks(block_size * 17, SCREEN_HEIGHT - 250, block_size),
-    Blocks(block_size * 18, SCREEN_HEIGHT - 250, block_size),
-    
-]
+# Level management
+level = 1
+blocks = map1()
 
 # ==================== MAIN LOOP ====================
 def main():
+    global level, blocks
+    
     run = True
     while run:
         clock.tick(FPS)
@@ -312,6 +363,11 @@ def main():
             block.draw(screen)
         
         player.draw(screen)
+        
+        # Display current level
+        font = pygame.font.Font(None, 36)
+        level_text = font.render(f"Level {level}", True, WHITE)
+        screen.blit(level_text, (10, 10))
             
         keys = pygame.key.get_pressed()
 
@@ -327,6 +383,36 @@ def main():
             player.velX = 0
         if keys[pygame.K_SPACE]:
             player.jump()
+        
+        if keys[pygame.K_n]:
+            if level < 3:
+                level += 1
+                if level == 1:
+                    blocks = map1()
+                elif level == 2:
+                    blocks = map2()
+                elif level == 3:
+                    blocks = map3()
+                player.x = 0
+                player.y = 500
+                player.velX = 0
+                player.velY = 0
+                player.on_ground = False
+        
+        if keys[pygame.K_p]:
+            if level > 1:
+                level -= 1
+                if level == 1:
+                    blocks = map1()
+                elif level == 2:
+                    blocks = map2()
+                elif level == 3:
+                    blocks = map3()
+                player.x = 0
+                player.y = 500
+                player.velX = 0
+                player.velY = 0
+                player.on_ground = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
