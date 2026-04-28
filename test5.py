@@ -23,13 +23,12 @@ CUSTOM_3 = ("#00550A")
 
 FPS = 60
 
-# Physics
 GRAVITY = 0.5
 JUMP = -10
-GROUND = SCREEN_HEIGHT - 80
+GROUND = SCREEN_HEIGHT - 92
 
 # character sprite
-sprite_sheet_image = pygame.image.load("assets/MainCharacter/male_hero.png").convert_alpha()
+character_sprite = pygame.image.load("assets/MainCharacter/male_hero.png").convert_alpha()
 
 # bg
 menu = "assets/Background/background4.jpg"
@@ -38,6 +37,12 @@ bg = [
     "assets/Background/background2.jpg",
     "assets/Background/background3.jpg"
 ]
+
+tile_size = 50
+# def grid():
+#     for line in range(0, 20):
+#         pygame.draw.line(screen, (255, 255, 255), (0, line * tile_size), (SCREEN_WIDTH, line * tile_size))
+#         pygame.draw.line(screen, (255, 255, 255), (line * tile_size, 0), (line * tile_size, SCREEN_HEIGHT))
 
 def get_image(sheet, frame, width, height, scale, offsetY):
     image = pygame.Surface((width, height)).convert_alpha()
@@ -50,13 +55,13 @@ def get_image(sheet, frame, width, height, scale, offsetY):
 
     return image
 
-def Block(size):
-    image = pygame.image.load("assets/Terrain/Terrain.png").convert_alpha()
-    surface = pygame.Surface((size, size), pygame.SRCALPHA, 32)
-    rect = pygame.Rect(96, 64, size, size)
-    surface.blit(image, (0, 0), rect)
+# def Block(size):
+#     image = pygame.image.load("assets/Terrain/Terrain.png").convert_alpha()
+#     surface = pygame.Surface((size, size), pygame.SRCALPHA, 32)
+#     rect = pygame.Rect(96, 64, size, size)
+#     surface.blit(image, (0, 0), rect)
 
-    return surface
+#     return surface
 
 # action, frames, vertical position
 ANIMATIONS = {
@@ -66,6 +71,99 @@ ANIMATIONS = {
     "fall": (4, 1408),
     "death": (23, 3072)
 }
+
+# ==================== WORLD ====================
+class World(pygame.sprite.Sprite):
+    def __init__(self, data):
+        self.tile_list = []
+
+        dirt = pygame.image.load("assets/img/dirt.png")
+        grass = pygame.image.load("assets/img/grass.png")
+        exit = pygame.image.load("assets/img/exit.png")
+
+        row_count = 0
+        for row in data:
+            col_count = 0
+            for tile in row:
+                if tile == 1:
+                    img = pygame.transform.scale(dirt, (tile_size, tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                if tile == 2:
+                    img = pygame.transform.scale(grass, (tile_size, tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                if tile == 3:
+                    img = pygame.transform.scale(exit, (tile_size, tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = col_count * tile_size
+                    img_rect.y = row_count * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                col_count += 1
+            row_count += 1
+
+    def draw(self):
+        for tile in self.tile_list:
+            screen.blit(tile[0], tile[1])
+            pygame.draw.rect(screen, (255, 255, 255), tile[1], 2)
+
+MAP1 = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1],
+    [1, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 2, 0, 2, 0, 0, 1],
+    [1, 0, 0, 2, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 2, 0, 0, 0, 1],
+    [1, 0, 0, 2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1],
+    [1, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 2, 2, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 1, 0, 0, 0, 0, 0, 1],
+    [1, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+]
+
+# MAP2 = [
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
+# ]
+
+# MAP3 = [
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
+# ]
 
 # ==================== PLAYER ====================
 class Player(pygame.sprite.Sprite):
@@ -99,9 +197,10 @@ class Player(pygame.sprite.Sprite):
                 anim_list.append(get_image(sprite_sheet, x, 128, 128, 1.5, offsetY))
             self.anim_lists[action_name] = anim_list
         
-        # initial sprite
         self.image = self.anim_lists[self.current_action][self.frame]
-        self.rect = self.image.get_rect(topleft=(self.x, self.y))
+        
+        self.rect = self.image.get_rect(topleft=(self.x, self.y)) # original 128
+        self.collision_rect = self.rect.inflate(-40, -80)  # inside resize
     
     def update_anim(self):
         current_time = pygame.time.get_ticks()
@@ -132,81 +231,7 @@ class Player(pygame.sprite.Sprite):
             self.current_action = "jump"
             self.frame = 0
     
-    def check_vertical_collision(self, blocks):
-        """Handle vertical collisions (landing on platforms from above)"""
-        if self.on_ground:
-            return
-            
-        player_mask = pygame.mask.from_surface(self.image)
-        player_rect = self.rect
-        
-        for block in blocks:
-            if player_rect.colliderect(block.rect):
-                offsetX = block.rect.x - player_rect.x
-                offsetY = block.rect.y - player_rect.y
-                
-                try:
-                    if player_mask.overlap(block.mask, (offsetX, offsetY)):
-                        # Landing on block from above
-                        if self.velY > 0:  # Moving downward
-                            self.y = block.rect.y - self.rect.height
-                            self.velY = 0
-                            self.on_ground = True
-                            self.is_jumping = False
-                            self.is_falling = False
-                            return
-                except:
-                    pass
-    
-    def check_horizontal_collision(self, blocks):
-        """Handle horizontal collisions (hitting blocks from sides)"""
-        player_mask = pygame.mask.from_surface(self.image)
-        player_rect = self.rect
-        
-        for block in blocks:
-            if player_rect.colliderect(block.rect):
-                offsetX = block.rect.x - player_rect.x
-                offsetY = block.rect.y - player_rect.y
-                
-                try:
-                    if player_mask.overlap(block.mask, (offsetX, offsetY)):
-                        # Collision from the left side
-                        if self.velX > 0:  # Moving right
-                            self.x = block.rect.x - self.rect.width
-                        # Collision from the right side
-                        elif self.velX < 0:  # Moving left
-                            self.x = block.rect.x + block.rect.width
-                        
-                        self.velX = 0
-                except:
-                    pass
-
-    def collision(self, blocks):
-        # Create mask for current player image
-        player_mask = pygame.mask.from_surface(self.image)
-        player_rect = self.rect
-        
-        for block in blocks:
-            # Check if rectangles overlap first (faster check)
-            if player_rect.colliderect(block.rect):
-                # Calculate offset between player and block for mask collision
-                offsetX = block.rect.x - player_rect.x
-                offsetY = block.rect.y - player_rect.y
-                
-                # Check pixel-perfect collision with mask
-                try:
-                    if player_mask.overlap(block.mask, (offsetX, offsetY)):
-                        # Only land on block if falling from above
-                        if self.velY > 0:  # Player moving downward
-                            self.y = block.rect.y - self.rect.height
-                            self.velY = 0
-                            self.on_ground = True
-                            self.is_jumping = False
-                            self.is_falling = False
-                except:
-                    pass
-
-    def update(self, blocks):
+    def update(self):
         self.update_anim()
         
         # gravity
@@ -216,10 +241,14 @@ class Player(pygame.sprite.Sprite):
         self.y += self.velY # vertical move
         
         # boders
-        if self.x < -64:
-            self.x = -64
-        if self.x > SCREEN_WIDTH - 128:
-            self.x = SCREEN_WIDTH - 128
+        # if self.x < -16: # left
+        #     self.x = -16
+        # if self.x > SCREEN_WIDTH - 176: # right
+        #     self.x = SCREEN_WIDTH - 176
+        # if self.y < -16: # top
+        #     self.y = -16
+        # if self.y > GROUND: # bottom
+        #     self.y = GROUND
 
         # current frame image
         current_image = self.anim_lists[self.current_action][self.frame]
@@ -231,9 +260,7 @@ class Player(pygame.sprite.Sprite):
         
         self.image = current_image
         self.rect = self.image.get_rect(topleft=(self.x, self.y))
-        
-        # Check collision with blocks (pixel-perfect)
-        self.collision(blocks)
+        self.collision_rect = self.rect.inflate(-160, -136)
 
         if self.y >= GROUND:
             self.y = GROUND
@@ -251,123 +278,64 @@ class Player(pygame.sprite.Sprite):
                 self.current_action = "fall"
                 self.frame = 0
     
+    def collisions(self, world):
+        for tile in world.tile_list:
+            tile_rect = tile[1]
+            
+            if self.collision_rect.colliderect(tile_rect):
+                # Determine collision direction
+                # player top
+                if self.velY > 0 and self.rect.bottom > tile_rect.top:
+                    self.y = tile_rect.top - (self.collision_rect.height // 2) - 92
+                    self.velY = 0
+                    self.on_ground = True
+                    self.is_jumping = False
+                    self.is_falling = False
+                    self.collision_rect.y = self.y + (self.rect.height - self.collision_rect.height) // 2
+                
+                # player bottom
+                elif self.velY < 0:
+                    self.y = tile_rect.bottom - self.collision_rect.height
+                    self.velY = 0
+                    self.collision_rect.y = self.y + (self.rect.height - self.collision_rect.height) // 2
+                
+                # horizontal || left & right
+                elif self.velX != 0:
+                    if self.velX < 0:  # moving left, hit right side of tile
+                        self.x = (tile_rect.right - self.rect.width) - 64
+                    elif self.velX > 0:  # moving right, hit left side of tile
+                        self.x = (tile_rect.left - self.rect.width) + 64
+                    
+                    self.collision_rect.x = self.x + (self.rect.width - self.collision_rect.width)
+    
     def draw(self, surface):
         surface.blit(self.image, (self.x, self.y))
+        pygame.draw.rect(surface, (255, 255, 255), self.collision_rect, 2)
 
-# ==================== OBSJECTS====================
-class Objects(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height, name=None):
-        super().__init__()
-        self.rect = pygame.Rect(x, y, width, height)
-        self.image = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.width = width
-        self.height = height
-        self.name = name
 
-    def draw(self, screen):
-        screen.blit(self.image, (self.rect.x, self.rect.y))
 
-class Blocks(Objects):
-    def __init__(self, x, y, size):
-        super().__init__(x, y, size, size)
-        block = Block(size)
-        self.image.blit(block, (0, 0))
-        self.mask = pygame.mask.from_surface(self.image)
-
-# ==================== LEVEL ====================
-def map1():
-    """Map 1: Basic platforming"""
-    block_size = 48
-    return [
-        # ground block
-        Blocks(i * block_size, SCREEN_HEIGHT - block_size, block_size)
-        for i in range(10)
-    ] + [
-        # block 2
-        Blocks(block_size * 11, SCREEN_HEIGHT - 150, block_size),
-        Blocks(block_size * 12, SCREEN_HEIGHT - 150, block_size),
-        
-        # block 3
-        Blocks(block_size * 14, SCREEN_HEIGHT - 250, block_size),
-        Blocks(block_size * 15, SCREEN_HEIGHT - 250, block_size),
-        Blocks(block_size * 16, SCREEN_HEIGHT - 250, block_size),
-    ]
-
-def map2():
-    """Map 2: Challenging jumps"""
-    block_size = 48
-    return [
-        # ground block
-        Blocks(i * block_size, SCREEN_HEIGHT - block_size, block_size)
-        for i in range(15)
-    ] + [
-        # Staircase pattern
-        Blocks(block_size * 3, SCREEN_HEIGHT - 150, block_size),
-        Blocks(block_size * 5, SCREEN_HEIGHT - 250, block_size),
-        Blocks(block_size * 7, SCREEN_HEIGHT - 350, block_size),
-        
-        # Gap and platform
-        Blocks(block_size * 11, SCREEN_HEIGHT - 200, block_size),
-        Blocks(block_size * 13, SCREEN_HEIGHT - 250, block_size),
-        Blocks(block_size * 15, SCREEN_HEIGHT - 150, block_size),
-    ]
-
-def map3():
-    """Map 3: Complex layout"""
-    block_size = 48
-    return [
-        # ground block
-        Blocks(i * block_size, SCREEN_HEIGHT - block_size, block_size)
-        for i in range(18)
-    ] + [
-        # Left tower
-        Blocks(block_size * 2, SCREEN_HEIGHT - 150, block_size),
-        Blocks(block_size * 2, SCREEN_HEIGHT - 200, block_size),
-        
-        # Middle platform
-        Blocks(block_size * 6, SCREEN_HEIGHT - 300, block_size),
-        Blocks(block_size * 7, SCREEN_HEIGHT - 300, block_size),
-        
-        # Right tower
-        Blocks(block_size * 11, SCREEN_HEIGHT - 200, block_size),
-        Blocks(block_size * 11, SCREEN_HEIGHT - 250, block_size),
-        Blocks(block_size * 11, SCREEN_HEIGHT - 300, block_size),
-        
-        # Final platform
-        Blocks(block_size * 15, SCREEN_HEIGHT - 150, block_size),
-        Blocks(block_size * 16, SCREEN_HEIGHT - 150, block_size),
-    ]
+map1 = World(MAP1)
+# map2 = World(MAP2)
+# map3 = World(MAP3)
 
 # ==================== POSITIONS ====================
-player = Player(0, 500, sprite_sheet_image)
+player = Player(100, GROUND - 128, character_sprite)
 clock = pygame.time.Clock()
-
-# Level management
-level = 1
-blocks = map1()
 
 # ==================== MAIN LOOP ====================
 def main():
-    global level, blocks
     
     run = True
     while run:
         clock.tick(FPS)
-
-        # Update player
-        player.update(blocks)
+        
+        player.update()
+        player.collisions(map1)  # Check collisions with tiles
         screen.fill(BROWN)
-
-        # Draw all blocks/platforms
-        for block in blocks:
-            block.draw(screen)
         
+        # grid()
+        map1.draw()
         player.draw(screen)
-        
-        # Display current level
-        font = pygame.font.Font(None, 36)
-        level_text = font.render(f"Level {level}", True, WHITE)
-        screen.blit(level_text, (10, 10))
             
         keys = pygame.key.get_pressed()
 
@@ -383,36 +351,6 @@ def main():
             player.velX = 0
         if keys[pygame.K_SPACE]:
             player.jump()
-        
-        if keys[pygame.K_n]:
-            if level < 3:
-                level += 1
-                if level == 1:
-                    blocks = map1()
-                elif level == 2:
-                    blocks = map2()
-                elif level == 3:
-                    blocks = map3()
-                player.x = 0
-                player.y = 500
-                player.velX = 0
-                player.velY = 0
-                player.on_ground = False
-        
-        if keys[pygame.K_p]:
-            if level > 1:
-                level -= 1
-                if level == 1:
-                    blocks = map1()
-                elif level == 2:
-                    blocks = map2()
-                elif level == 3:
-                    blocks = map3()
-                player.x = 0
-                player.y = 500
-                player.velX = 0
-                player.velY = 0
-                player.on_ground = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
