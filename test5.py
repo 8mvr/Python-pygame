@@ -25,7 +25,7 @@ FPS = 60
 
 GRAVITY = 0.5
 JUMP = -10
-GROUND = SCREEN_HEIGHT - 92
+GROUND = SCREEN_HEIGHT - 128
 
 # character sprite
 character_sprite = pygame.image.load("assets/MainCharacter/male_hero.png").convert_alpha()
@@ -37,6 +37,8 @@ bg = [
     "assets/Background/background2.jpg",
     "assets/Background/background3.jpg"
 ]
+
+spike_group = pygame.sprite.Group()
 
 tile_size = 50
 # def grid():
@@ -106,6 +108,10 @@ class World(pygame.sprite.Sprite):
                     img_rect.y = row_count * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
+                if tile == 4:
+                    spike = Spike(col_count * tile_size, row_count * tile_size)
+                    spike_group.add(spike)
+
                 col_count += 1
             row_count += 1
 
@@ -164,6 +170,15 @@ MAP1 = [
 #     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 #     [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
 # ]
+
+class Spike(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load("assets/Trap/Idle.png")
+        self.image = pygame.transform.scale(img, (tile_size, tile_size // 2))
+        self.rect = self.image.get_rect()
+        self.x = x
+        self.y = y
 
 # ==================== PLAYER ====================
 class Player(pygame.sprite.Sprite):
@@ -299,14 +314,14 @@ class Player(pygame.sprite.Sprite):
                     self.velY = 0
                     self.collision_rect.y = self.y + (self.rect.height - self.collision_rect.height) // 2
                 
-                # horizontal || left & right
-                elif self.velX != 0:
-                    if self.velX < 0:  # moving left, hit right side of tile
-                        self.x = (tile_rect.right - self.rect.width) - 64
-                    elif self.velX > 0:  # moving right, hit left side of tile
-                        self.x = (tile_rect.left - self.rect.width) + 64
+                # Left/Right collision
+                # elif self.velX != 0:
+                #     if self.velX < 0:  # moving left, hit right side of tile
+                #         self.x = tile_rect.right
+                #     elif self.velX > 0:  # moving right, hit left side of tile
+                #         self.x = (tile_rect.left - self.rect.width)
                     
-                    self.collision_rect.x = self.x + (self.rect.width - self.collision_rect.width)
+                #     self.collision_rect.x = self.x + ((self.rect.width - self.collision_rect.width) // 2) - 92
     
     def draw(self, surface):
         surface.blit(self.image, (self.x, self.y))
@@ -320,6 +335,7 @@ map1 = World(MAP1)
 
 # ==================== POSITIONS ====================
 player = Player(100, GROUND - 128, character_sprite)
+
 clock = pygame.time.Clock()
 
 # ==================== MAIN LOOP ====================
@@ -335,6 +351,7 @@ def main():
         
         # grid()
         map1.draw()
+        spike_group.draw(screen)
         player.draw(screen)
             
         keys = pygame.key.get_pressed()
