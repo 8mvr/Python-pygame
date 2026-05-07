@@ -66,7 +66,7 @@ lvl_3 = pygame.transform.scale(lvl_3, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 bg = [menu_bg, lvl_1, lvl_2, lvl_3]
 
-# # ==================== SOUND ====================
+# ==================== SOUND ====================
 # pygame.mixer.music.load("assets/img/music.wav")
 # pygame.mixer.music.play(-1, 0.0, 5000)
 star_sound = pygame.mixer.Sound("assets/audio/notice.wav")
@@ -88,6 +88,15 @@ def get_image(sheet, frame, width, height, scale, offsetY):
     image = pygame.transform.scale(image, (width * scale, height * scale))
     image.set_colorkey(BLACK)
     return image
+
+def levels(lvl_index):
+    global world, spike_group, platform_group, door_group, star_group, current_lvl
+    current_lvl = lvl_index
+    spike_group = pygame.sprite.Group()
+    platform_group = pygame.sprite.Group()
+    door_group = pygame.sprite.Group()
+    star_group = pygame.sprite.Group()
+    world = World(MAP[lvl_index])
 
 ANIMATIONS = {
     "idle": (10, 128),
@@ -511,15 +520,6 @@ class Player(pygame.sprite.Sprite):
 
         # box
         self.outline = self.rect.inflate(-168, -144)
-
-def levels(lvl_index):
-    global world, spike_group, platform_group, door_group, star_group, current_lvl
-    current_lvl = lvl_index
-    spike_group = pygame.sprite.Group()
-    platform_group = pygame.sprite.Group()
-    door_group = pygame.sprite.Group()
-    star_group = pygame.sprite.Group()
-    world = World(MAP[lvl_index])
 
 # score_star = Star(tile_size // 2, tile_size // 2)
 
