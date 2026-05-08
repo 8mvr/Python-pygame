@@ -147,7 +147,7 @@ MAP = [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,5,3,0,0,0,0,0,0,0,0,5,0,0,0,5,0],
         [0,0,0,2,2,0,0,0,0,0,2,2,0,0,0,0,0,0],
-        [3,0,0,0,0,0,0,4,0,0,0,0,0,0,2,2,2,2],
+        [3,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,2,2],
         [2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,3,5,0,0,0,0,0,3,0,0,0,0,0,7],
         [0,0,0,2,2,0,0,0,4,0,0,2,2,0,0,2,2,2],
@@ -267,7 +267,7 @@ class World(pygame.sprite.Sprite):
     def draw(self):
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
-            screen.blit(tile[0], tile[1])
+            # screen.blit(tile[0], tile[1])
             # block rid
             # pygame.draw.rect(screen, (255, 255, 255), tile[1], 2)
 
@@ -358,7 +358,7 @@ class Player(pygame.sprite.Sprite):
 
             self.image = self.anim_lists["death"][self.frame]
             return -1
-        if self.won:          # ← add this block
+        if self.won:
             self.update_anim()
             return 1
 
