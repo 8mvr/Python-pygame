@@ -44,6 +44,16 @@ current_lvl = 0
 life = 3
 game_paused = False
 
+def draw_grid():
+    for x in range(0, SCREEN_WIDTH, tile_size):
+        pygame.draw.line(screen, (255, 255, 255, 80), (x, 0), (x, SCREEN_HEIGHT), 1)
+    for y in range(0, SCREEN_HEIGHT, tile_size):
+        pygame.draw.line(screen, (255, 255, 255, 80), (0, y), (SCREEN_WIDTH, y), 1)
+
+def draw_cross():
+    pygame.draw.line(screen, WHITE, (SCREEN_WIDTH // 2, SCREEN_WIDTH), (SCREEN_WIDTH // 2, 0), 3)
+    pygame.draw.line(screen, WHITE, (0, SCREEN_HEIGHT // 2), (SCREEN_WIDTH, SCREEN_HEIGHT // 2), 3)
+
 # ==================== SPRITE ShEET IMAGES ====================
 character_sprite = pygame.image.load("assets/MainCharacter/male_hero.png").convert_alpha()
 enemy_sprite = pygame.image.load("assets/Enemy/enemies-spritesheet.png").convert_alpha()
@@ -59,25 +69,41 @@ def get_button(sheet, x, y, w, h, scale=2):
 start_btn = get_button(button_img,  -16, 48, 48, 16)
 start_btn = pygame.transform.scale(start_btn, (400, 100))
 
-settings_btn = get_button(button_img,  0, 64, 64, 16)
+settings_btn = get_button(button_img,  -16, 64, 64, 16)
+settings_btn = pygame.transform.scale(settings_btn, (400, 100))
 
 quit_btn = get_button(button_img, 80, 32, 32, 16)
 quit_btn = pygame.transform.scale(quit_btn, (200, 100))
-# resume_img = pygame.image.load("assets/Buttons/button_resume.png")
-# option_img = pygame.image.load("assets/Buttons/button_options.png")
-# quit_img = pygame.image.load("assets/Buttons/button_quit.png")
 
-# restart_img = pygame.image.load("assets/img/restart_btn.png")
-# restart_img = pygame.transform.scale(restart_img, (300, 100))
-# start_img = pygame.image.load("assets/img/start_btn.png")
-# exit_img = pygame.image.load("assets/img/exit_btn.png")
+continue_btn_img = get_button(button_img, -16, 80, 64, 16)
+continue_btn_img = pygame.transform.scale(continue_btn_img, (400, 100))
 
+menu_btn_img = get_button(button_img, 32, 48, 32, 16)
+menu_btn_img = pygame.transform.scale(menu_btn_img, (200, 100))
+
+# ========== STAR ==========
 # stars images
 star_gray = pygame.image.load("assets/img/s2.png")
 star_gray = pygame.transform.scale(star_gray, (30, 30))
 
 star_yellow = pygame.image.load("assets/img/s1.png")
 star_yellow = pygame.transform.scale(star_yellow, (30, 30))
+
+# ========== HEART ==========
+heart_sheet = pygame.image.load("assets/img/hearts.png").convert_alpha()
+
+def heart(frame):
+    surf = pygame.Surface((16, 16), pygame.SRCALPHA)
+    surf.blit(heart_sheet, (0, 0), (frame * 16, 0, 16, 16))
+    return pygame.transform.scale(surf, (32, 32))
+
+heart_full  = heart(0)
+heart_empty = heart(1)
+
+def draw_hearts(lives, max_lives=3):
+    for i in range(max_lives):
+        img = heart_full if i < lives else heart_empty
+        screen.blit(img, (8 + i * (32 + 4), 8))
 
 # background images
 menu_bg = pygame.image.load("assets/Background/background4.jpg")
@@ -686,12 +712,96 @@ player = Player(-50, SCREEN_HEIGHT - 100, character_sprite)
 levels(0)
 
 start_btn = Button(SCREEN_WIDTH // 2 - 275, (SCREEN_HEIGHT // 2 - 100), start_btn)
-settings_btn = Button(SCREEN_WIDTH // 2 - 350, SCREEN_HEIGHT // 2, settings_btn)
+settings_btn = Button(SCREEN_WIDTH // 2 - 255, SCREEN_HEIGHT // 2 + 25, settings_btn)
 quit_btn = Button(SCREEN_WIDTH // 2 - 105, SCREEN_HEIGHT // 2 + 150, quit_btn)
+continue_btn = Button(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 80, continue_btn_img)
+menu_btn = Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 150,  menu_btn_img)
 
 clock = pygame.time.Clock()
-
 death_time = None
+menu_return_time = None
+
+# ==================== SETTINGS ====================
+show_settings = False
+music_volume = 0.5
+sfx_volume = 0.5
+
+def draw_volume_row(label, x, y, value, width=300):
+    font_small = pygame.font.SysFont("Bauhaus 93", 24)
+    btn_size = 32
+
+    # label
+    lbl = font_small.render(label, True, WHITE)
+    screen.blit(lbl, (x, y - 28))
+
+    # minus button
+    minus_rect = pygame.Rect(x, y - 8, btn_size, btn_size)
+    minus_hover = minus_rect.collidepoint(pygame.mouse.get_pos())
+    pygame.draw.rect(screen, (180, 60, 60) if minus_hover else (120, 40, 40), minus_rect, border_radius=6)
+    m_lbl = font_small.render("-", True, WHITE)
+    screen.blit(m_lbl, (minus_rect.x + 10, minus_rect.y + 4))
+
+    # bar track
+    bar_x = x + btn_size + 10
+    bar_w = width - btn_size * 2 - 20
+    track_rect = pygame.Rect(bar_x, y, bar_w, 10)
+    pygame.draw.rect(screen, GRAY, track_rect, border_radius=5)
+
+    # bar fill
+    fill_w = int(bar_w * value)
+    if fill_w > 0:
+        pygame.draw.rect(screen, (80, 160, 255), pygame.Rect(bar_x, y, fill_w, 10), border_radius=5)
+
+    # plus button
+    plus_rect = pygame.Rect(bar_x + bar_w + 10, y - 8, btn_size, btn_size)
+    plus_hover = plus_rect.collidepoint(pygame.mouse.get_pos())
+    pygame.draw.rect(screen, (60, 160, 80) if plus_hover else (40, 110, 55), plus_rect, border_radius=6)
+    p_lbl = font_small.render("+", True, WHITE)
+    screen.blit(p_lbl, (plus_rect.x + 8, plus_rect.y + 4))
+
+    # percent
+    pct = font_small.render(f"{int(value * 100)}%", True, WHITE)
+    screen.blit(pct, (plus_rect.right + 10, y - 6))
+
+    return minus_rect, plus_rect
+
+def draw_settings_panel():
+    global music_volume, sfx_volume
+
+    # dim overlay
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
+
+    # panel box
+    panel = pygame.Rect(SCREEN_WIDTH // 2 - 220, SCREEN_HEIGHT // 2 - 160, 440, 320)
+    pygame.draw.rect(screen, (30, 30, 50), panel, border_radius=16)
+    pygame.draw.rect(screen, (80, 160, 255), panel, 3, border_radius=16)
+
+    # title
+    font_med = pygame.font.SysFont("Bauhaus 93", 42)
+    title = font_med.render("SETTINGS", True, WHITE)
+    screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, panel.y + 20))
+
+    # rows
+    sx = panel.x + 40
+    music_minus, music_plus = draw_volume_row("Music Volume", sx, panel.y + 115, music_volume, width=340)
+    sfx_minus,   sfx_plus   = draw_volume_row("SFX Volume",   sx, panel.y + 210, sfx_volume,   width=340)
+
+    # apply volumes live
+    pygame.mixer.music.set_volume(music_volume)
+    star_sound.set_volume(sfx_volume)
+    jump_sound.set_volume(sfx_volume)
+    game_over_sound.set_volume(sfx_volume)
+
+    # close button
+    font_small = pygame.font.SysFont("Bauhaus 93", 26)
+    close_rect = pygame.Rect(panel.right - 48, panel.y + 10, 34, 34)
+    pygame.draw.rect(screen, RED, close_rect, border_radius=6)
+    x_lbl = font_small.render("X", True, WHITE)
+    screen.blit(x_lbl, (close_rect.x + 8, close_rect.y + 4))
+
+    return close_rect, music_minus, music_plus, sfx_minus, sfx_plus
 
 # ==================== MAIN ====================
 run = True
@@ -700,22 +810,32 @@ while run:
 
     if main_menu:
         screen.blit(bg[0], (0, 0))
-        if start_btn.draw():
-            main_menu = False
-        if quit_btn.draw():
-            run = False
+        if not show_settings:
+            if start_btn.draw():
+                main_menu = False
+            if settings_btn.draw():
+                show_settings = True
+            if quit_btn.draw():
+                run = False
+
+        if show_settings:
+            close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
     else:
         bg_index = min(level, len(bg) - 1)
         screen.blit(bg[bg_index], (0, 0))
+        draw_grid()
+        draw_cross()
 
-        # score stars
         for i in range(3):
             img = star_yellow if i < score else star_gray
-            screen.blit(img, (10 + i * 35, 10))
+            screen.blit(img, (10 + i * 35, 42))
 
-        GAME_OVER = player.update(world, game_over)
-        platform_group.update()
-        enemy_group.update()
+        draw_hearts(life)
+
+        if not game_paused:
+            GAME_OVER = player.update(world, game_over)
+            platform_group.update()
+            enemy_group.update()
 
         world.draw()
         spike_group.draw(screen)
@@ -725,6 +845,9 @@ while run:
         checkpoint_group.draw(screen)
         enemy_group.draw(screen)
         player.draw(screen)
+
+        if show_settings:
+            close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
 
         # ===== PLAYER DIED =====
         if GAME_OVER == -1:
@@ -736,9 +859,13 @@ while run:
             elapsed = now - death_time
 
             if life - 1 <= 0:
-                text("GAME OVER!", font, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2 - 80)
+                overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 150))
+                screen.blit(overlay, (0, 0))
 
-                if start_btn.draw():
+                text("GAME OVER!", font, RED, SCREEN_WIDTH // 2 - 190, SCREEN_HEIGHT // 2 - 200)
+
+                if continue_btn.draw():
                     life -= 1
                     collected_stars.clear()
                     activated_checkpoints.clear()
@@ -750,11 +877,25 @@ while run:
                     player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                     GAME_OVER = 0
 
-                if quit_btn.draw():
-                    run = False
+                if menu_btn.draw():
+                    if menu_return_time is None:
+                        menu_return_time = pygame.time.get_ticks()
+                elif menu_return_time is not None:
+                    if pygame.time.get_ticks() - menu_return_time >= 300:
+                        life = 3
+                        level = 1
+                        score = 0
+                        collected_stars.clear()
+                        activated_checkpoints.clear()
+                        levels(0)
+                        player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                        GAME_OVER = 0
+                        main_menu = True
+                        death_time = None
+                        menu_return_time = None
 
             else:
-                text("GAME OVER!", font, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
+                text("You Died", font, RED, (SCREEN_WIDTH // 2 - 140), SCREEN_HEIGHT // 2 - 45)
 
                 if elapsed >= 2000:
                     life -= 1
@@ -787,8 +928,26 @@ while run:
 
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_p:
-                game_paused = not game_paused
+            if event.key == pygame.K_ESCAPE:
+                if not main_menu:
+                    if show_settings:
+                        show_settings = False
+                        continue_btn.draw()
+                    else:
+                        game_paused = not game_paused
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if show_settings:
+                if close_rect.collidepoint(event.pos):
+                    show_settings = False
+                    game_paused = False
+                if music_minus.collidepoint(event.pos):
+                    music_volume = max(0.0, round(music_volume - 0.1, 1))
+                if music_plus.collidepoint(event.pos):
+                    music_volume = min(1.0, round(music_volume + 0.1, 1))
+                if sfx_minus.collidepoint(event.pos):
+                    sfx_volume = max(0.0, round(sfx_volume - 0.1, 1))
+                if sfx_plus.collidepoint(event.pos):
+                    sfx_volume = min(1.0, round(sfx_volume + 0.1, 1))
         if event.type == pygame.QUIT:
             run = False
 
