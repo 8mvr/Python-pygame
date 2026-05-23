@@ -33,6 +33,7 @@ FPS = 60
 GRAVITY = 0.5
 JUMP = -10.5
 GROUND = SCREEN_HEIGHT + 10
+MAX_HEALTH = 100
 
 tile_size = 50
 game_over = 0
@@ -40,18 +41,43 @@ main_menu = True
 level = 1
 score = 0
 current_lvl = 0
+life = 3
+game_paused = False
 
-# ==================== IMAGES ====================
+# ==================== SPRITE ShEET IMAGES ====================
 character_sprite = pygame.image.load("assets/MainCharacter/male_hero.png").convert_alpha()
+enemy_sprite = pygame.image.load("assets/Enemy/enemies-spritesheet.png").convert_alpha()
 
 # button image
-restart_img = pygame.image.load("assets/img/restart_btn.png")
-restart_img = pygame.transform.scale(restart_img, (300, 100))
-start_img = pygame.image.load("assets/img/start_btn.png")
-exit_img = pygame.image.load("assets/img/exit_btn.png")
+button_img = pygame.image.load("assets/Buttons/Blue_Buttons_Pixel.png").convert_alpha()
 
-star_icon = pygame.image.load("assets/img/s1.png")
-star_icon = pygame.transform.scale(star_icon, (30, 30))
+def get_button(sheet, x, y, w, h, scale=2):
+    img = pygame.Surface((w, h), pygame.SRCALPHA)
+    img.blit(sheet, (0, 0), (x, y, w, h))
+    return pygame.transform.scale(img, (w * scale, h * scale))
+
+start_btn = get_button(button_img,  -16, 48, 48, 16)
+start_btn = pygame.transform.scale(start_btn, (400, 100))
+
+settings_btn = get_button(button_img,  0, 64, 64, 16)
+
+quit_btn = get_button(button_img, 80, 32, 32, 16)
+quit_btn = pygame.transform.scale(quit_btn, (200, 100))
+# resume_img = pygame.image.load("assets/Buttons/button_resume.png")
+# option_img = pygame.image.load("assets/Buttons/button_options.png")
+# quit_img = pygame.image.load("assets/Buttons/button_quit.png")
+
+# restart_img = pygame.image.load("assets/img/restart_btn.png")
+# restart_img = pygame.transform.scale(restart_img, (300, 100))
+# start_img = pygame.image.load("assets/img/start_btn.png")
+# exit_img = pygame.image.load("assets/img/exit_btn.png")
+
+# stars images
+star_gray = pygame.image.load("assets/img/s2.png")
+star_gray = pygame.transform.scale(star_gray, (30, 30))
+
+star_yellow = pygame.image.load("assets/img/s1.png")
+star_yellow = pygame.transform.scale(star_yellow, (30, 30))
 
 # background images
 menu_bg = pygame.image.load("assets/Background/background4.jpg")
@@ -67,8 +93,8 @@ lvl_3 = pygame.transform.scale(lvl_3, (SCREEN_WIDTH, SCREEN_HEIGHT))
 bg = [menu_bg, lvl_1, lvl_2, lvl_3]
 
 # ==================== SOUND ====================
-# pygame.mixer.music.load("assets/img/music.wav")
-# pygame.mixer.music.play(-1, 0.0, 5000)
+pygame.mixer.music.load("assets/img/music.wav")
+pygame.mixer.music.play(-1, 0.0, 5000)
 star_sound = pygame.mixer.Sound("assets/audio/notice.wav")
 star_sound.set_volume(0.5)
 jump_sound = pygame.mixer.Sound("assets/audio/jump.wav")
@@ -89,20 +115,41 @@ def get_image(sheet, frame, width, height, scale, offsetY):
     image.set_colorkey(BLACK)
     return image
 
+collected_stars = set()
+activated_checkpoints = set()
+killed_enemies = set()
 def levels(lvl_index):
-    global world, spike_group, platform_group, door_group, star_group, current_lvl
+    global world, spike_group, platform_group, door_group, star_group, checkpoint_group, enemy_group, current_lvl
     current_lvl = lvl_index
     spike_group = pygame.sprite.Group()
     platform_group = pygame.sprite.Group()
     door_group = pygame.sprite.Group()
     star_group = pygame.sprite.Group()
+    checkpoint_group = pygame.sprite.Group()
+    enemy_group = pygame.sprite.Group()
     world = World(MAP[lvl_index])
+
+    # restore collected stars
+    for star in star_group.sprites():
+        if star.grid_pos in collected_stars:
+            star.kill()
+
+    # restore activated checkpoints
+    for check in checkpoint_group:
+        if check.grid_pos in activated_checkpoints:
+            check.activated = True
+
+    # restore killed enemies
+    for enemy in enemy_group.sprites():
+        if enemy.grid_pos in killed_enemies:
+            enemy.kill()
 
 ANIMATIONS = {
     "idle": (10, 128),
     "run": (10, 768),
     "jump": (6, 1280),
     "fall": (4, 1408),
+    "damage" : (6, 2944),
     "death": (23, 3072)
 }
 
@@ -115,8 +162,8 @@ MAP = [
         [2,0,0,0,1,0,0,2,0,1,2,2,0,1,2,0,0,0],
         [0,0,0,0,1,0,2,1,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [2,0,0,0,0,0,0,6,0,0,0,0,2,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,2,2,1,2,0,0,0,0],
+        [2,0,0,0,0,0,0,6,0,0,9,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,8,0,0,0,2,2,2,2,0,0,0,0],
         [0,0,2,0,0,0,2,2,0,0,0,0,0,0,0,0,0,2],
         [0,2,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,6,0,0,0,0,0,2,2,0,0,0,2,0],
@@ -226,6 +273,12 @@ class World(pygame.sprite.Sprite):
                 if tile == 7:
                     door = Door(x *tile_size, y * tile_size - (tile_size // 2) + 10)
                     door_group.add(door)
+                if tile == 8:
+                    check = Checkpoint(x * tile_size, y * tile_size - 15)
+                    checkpoint_group.add(check)
+                if tile == 9:
+                    enemy = Enemy(x * tile_size, y * tile_size + 10, enemy_sprite)
+                    enemy_group.add(enemy)
 
                 x += 1
             y += 1
@@ -315,6 +368,61 @@ class Star(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(img, (tile_size // 2, tile_size // 2))
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.grid_pos = (x, y)
+
+# ==================== CHECKPOINT ====================
+class Checkpoint(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        img = pygame.image.load("assets/Terrain/flag.gif")
+        self.image = pygame.transform.scale(img, (tile_size, tile_size * 1.3))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.grid_pos = (x, y)
+        self.activated = False
+        
+# ==================== ENEMY ====================
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y, sprite_sheet):
+        pygame.sprite.Sprite.__init__(self)
+        self.sprite_sheet = sprite_sheet
+        self.grid_pos = (x, y)
+        self.anim_frames = [
+            get_image(sprite_sheet, i, 20, 20, 2, 200)
+            for i in range(4)
+        ]
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.anim_cooldown = 120
+
+        self.image = self.anim_frames[0]
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.outline = self.rect.inflate(-20, -10)
+
+        self.speed = 1
+        self.direction = 1
+        self.move_distance = 150
+        self.start_x = x
+        self.move_count = 0
+
+    def update(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_update > self.anim_cooldown:
+            self.frame = (self.frame + 1) % len(self.anim_frames)
+            self.last_update = current_time
+
+        self.rect.x += self.speed * self.direction
+        self.outline.center = self.rect.center
+        self.move_count += self.speed
+
+        if abs(self.move_count) >= self.move_distance:
+            self.direction *= -1
+            self.move_count = 0
+
+        img = self.anim_frames[self.frame]
+        if self.direction == -1:
+            img = pygame.transform.flip(img, True, False)
+            img.set_colorkey(BLACK)
+        self.image = img
 
 # ==================== PLAYER ====================
 class Player(pygame.sprite.Sprite):
@@ -378,7 +486,7 @@ class Player(pygame.sprite.Sprite):
 
             self.velY += GRAVITY
 
-            # player  hitnox
+            # player  hitbox
             self.outline.center = self.rect.center
             movement = [self.velX, self.velY]
             self.outline, collisions = world.move(self.outline, movement)
@@ -391,6 +499,7 @@ class Player(pygame.sprite.Sprite):
             if self.outline.top < 0: # top
                 self.outline.top = 0
             if self.outline.bottom > GROUND: # void
+                self.health = 0
                 self.dead = True
                 self.velX = 0
                 self.velY = 0
@@ -413,6 +522,7 @@ class Player(pygame.sprite.Sprite):
             # ===== COL =====
             for spike in spike_group:
                 if self.outline.colliderect(spike.rect):
+                    self.health = 0
                     self.dead = True
                     self.velX = 0
                     self.velY = 0
@@ -424,12 +534,15 @@ class Player(pygame.sprite.Sprite):
             
             for door in door_group:
                 if self.outline.colliderect(door):
-                    self.velX = 0
-                    self.velY = 0
-                    self.action("idle")
-                    self.won = True
+                    if len(star_group) == 0:
+                        self.velX = 0
+                        self.velY = 0
+                        self.action("idle")
+                        self.won = True
 
-                    return 1
+                        return 1
+                    else:
+                        self.at_locked_door = True
             
             for platform in platform_group:
                 if self.outline.colliderect(platform):
@@ -458,11 +571,51 @@ class Player(pygame.sprite.Sprite):
             for star in star_group.sprites():
                 if self.outline.colliderect(star.rect):
                     star_sound.play()
+                    collected_stars.add(star.grid_pos)
                     star.kill()
                     score += 1
                     # print(score)
+
+            for check in checkpoint_group:
+                if self.outline.colliderect(check.rect):
+                    if not check.activated:
+                        check.activated = True
+                        activated_checkpoints.add(check.grid_pos)
+                        self.checkpoint_pos = (check.rect.centerx - self.rect.width // 2, check.rect.bottom - self.rect.height)
+                    
+            for enemy in enemy_group:
+                if self.outline.colliderect(enemy.outline):
+                    current_time = pygame.time.get_ticks()
+                    if current_time - self.last_hit > self.hit_cooldown:
+                        self.last_hit = current_time
+                        self.health -= 30
+                        if self.health <= 0:
+                            self.health = 0
+                            self.dead = True
+                            self.velX = 0
+                            self.velY = 0
+                            self.frame = 0
+                            game_over_sound.play()
+                            self.action("death")
+                            return -1
+                        else:
+                            game_over_sound.play()
+                            self.taking_damage = True
+                            self.action("damage")
             
             # ===== ANIMATION =====
+            if self.taking_damage:
+                if self.frame >= len(self.anim_lists["damage"]) - 1:
+                    self.taking_damage = False
+                    self.frame = 0
+                else:
+                    image = self.anim_lists[self.current_action][self.frame]
+                    if self.direction == "left":
+                        image = pygame.transform.flip(image, True, False)
+                        image.set_colorkey(BLACK)
+                    self.image = image
+
+                    return
             if not self.on_ground:
                 if self.velY < 0:
                     self.action("jump")
@@ -490,14 +643,19 @@ class Player(pygame.sprite.Sprite):
 
     def reset(self, x, y, sprite):
         self.sprite_sheet = sprite
+        self.health = MAX_HEALTH
         self.x = x
         self.y = y
         self.dead = False
         self.won = False
+        self.checkpoint_pos = None
 
         self.velX = 0
         self.velY = 0
         self.speed = 5
+        self.taking_damage = False
+        self.last_hit = 0
+        self.hit_cooldown = 1500
 
         self.on_ground = False
 
@@ -526,72 +684,111 @@ class Player(pygame.sprite.Sprite):
 # ==================== LOCATION ====================
 player = Player(-50, SCREEN_HEIGHT - 100, character_sprite)
 levels(0)
-# world = World(MAP)
 
-# button
-restart_button = Button(SCREEN_WIDTH // 2 - 150, (SCREEN_HEIGHT // 2) + 100, restart_img)
-start_button = Button(SCREEN_WIDTH // 2 - 350, SCREEN_HEIGHT // 2, start_img)
-exit_button = Button(SCREEN_WIDTH // 2 + 100, SCREEN_HEIGHT // 2, exit_img)
+start_btn = Button(SCREEN_WIDTH // 2 - 275, (SCREEN_HEIGHT // 2 - 100), start_btn)
+settings_btn = Button(SCREEN_WIDTH // 2 - 350, SCREEN_HEIGHT // 2, settings_btn)
+quit_btn = Button(SCREEN_WIDTH // 2 - 105, SCREEN_HEIGHT // 2 + 150, quit_btn)
 
 clock = pygame.time.Clock()
+
+death_time = None
 
 # ==================== MAIN ====================
 run = True
 while run:
     clock.tick(FPS)
 
-    # screen.fill(BROWN)
-    if main_menu == True:
+    if main_menu:
         screen.blit(bg[0], (0, 0))
-        if start_button.draw():
+        if start_btn.draw():
             main_menu = False
-        if exit_button.draw():
+        if quit_btn.draw():
             run = False
     else:
         bg_index = min(level, len(bg) - 1)
         screen.blit(bg[bg_index], (0, 0))
 
-        # score
-        screen.blit(star_icon, (10, 10))
-        text(" = " + str(score), font_score, WHITE, tile_size - 10, 10)
+        # score stars
+        for i in range(3):
+            img = star_yellow if i < score else star_gray
+            screen.blit(img, (10 + i * 35, 10))
 
         GAME_OVER = player.update(world, game_over)
-        # print(GAME_OVER)
         platform_group.update()
+        enemy_group.update()
 
         world.draw()
         spike_group.draw(screen)
         platform_group.draw(screen)
         door_group.draw(screen)
         star_group.draw(screen)
+        checkpoint_group.draw(screen)
+        enemy_group.draw(screen)
         player.draw(screen)
 
-        # if player died
+        # ===== PLAYER DIED =====
         if GAME_OVER == -1:
-            text("GAME OVER!", font, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
-            if restart_button.draw():
-                levels(current_lvl)
-                score = 0
-                player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
-                GAME_OVER = 0
+            now = pygame.time.get_ticks()
+
+            if death_time is None:
+                death_time = now
+
+            elapsed = now - death_time
+
+            if life - 1 <= 0:
+                text("GAME OVER!", font, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2 - 80)
+
+                if start_btn.draw():
+                    life -= 1
+                    collected_stars.clear()
+                    activated_checkpoints.clear()
+                    level = 1
+                    levels(0)
+                    score = 0
+                    life = 3
+                    death_time = None
+                    player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                    GAME_OVER = 0
+
+                if quit_btn.draw():
+                    run = False
+
+            else:
+                text("GAME OVER!", font, BLUE, (SCREEN_WIDTH // 2) - 200, SCREEN_HEIGHT // 2)
+
+                if elapsed >= 2000:
+                    life -= 1
+                    spawn = player.checkpoint_pos if player.checkpoint_pos else (-50, SCREEN_HEIGHT - 100)
+                    levels(current_lvl)
+                    player.reset(spawn[0], spawn[1], character_sprite)
+                    player.checkpoint_pos = spawn
+                    death_time = None
+                    GAME_OVER = 0
+
+        else:
+            death_time = None
 
         # win ++ level
         if GAME_OVER == 1:
             level += 1
             if level <= len(MAP):
+                collected_stars.clear()
                 levels(level - 1)
                 score = 0
                 player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                 GAME_OVER = 0
             else:
-                text("YOU WIN!", font, BLUE, ((SCREEN_WIDTH // 2) - 140), SCREEN_HEIGHT // 2)
-                if restart_button.draw():
+                text("YOU WIN!", font, BLUE, (SCREEN_WIDTH // 2) - 140, SCREEN_HEIGHT // 2)
+                if start_btn.draw():
                     level = 1
                     levels(0)
                     score = 0
                     player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
 
     for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_p:
+                game_paused = not game_paused
         if event.type == pygame.QUIT:
             run = False
 
