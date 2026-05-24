@@ -42,6 +42,7 @@ score = 0
 current_lvl = 0
 life = 3
 game_paused = False
+show_credits = False
 wave_time = 0
 
 def draw_grid():
@@ -121,6 +122,8 @@ jump_sound = pygame.mixer.Sound("assets/audio/jump.wav")
 jump_sound.set_volume(0.5)
 game_over_sound = pygame.mixer.Sound("assets/img/game_over.wav")
 game_over_sound.set_volume(0.5)
+
+button_sound = pygame.mixer.Sound("assets/audio/emilianodleon-select-button-ui-395763.wav")
 
 # ==================== WAVE TITLE ====================
 def draw_wave_title(text_str, x, y, t):
@@ -296,21 +299,22 @@ class Button():
     def draw(self):
         action = False
         pos = pygame.mouse.get_pos()
-        now = pygame.time.get_ticks()
+        current = pygame.time.get_ticks()
 
         if self.rect.collidepoint(pos):
             if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
                 self.clicked = True
-                self.click_time = now
+                self.click_time = current
+                button_sound.play()
 
-        if self.clicked and now - self.click_time >= self.cooldown:
+        if self.clicked and current - self.click_time >= self.cooldown:
             action = True
             self.clicked = False
 
         if pygame.mouse.get_pressed()[0] == 0:
             if not self.clicked:
                 pass
-            elif now - self.click_time < self.cooldown:
+            elif current - self.click_time < self.cooldown:
                 pass
             else:
                 self.clicked = False
@@ -774,8 +778,8 @@ start_btn = get_button(button_img, -16, 48, 48, 16)
 start_btn = pygame.transform.scale(start_btn, (400, 100))
 settings_btn = get_button(button_img, -16, 64, 64, 16)
 settings_btn = pygame.transform.scale(settings_btn, (400, 100))
-quit_btn = get_button(button_img, 80, 32, 32, 16)
-quit_btn = pygame.transform.scale(quit_btn, (200, 100))
+credits_btn = get_button(button_img, 48, 96, 32, 16)
+credits_btn = pygame.transform.scale(credits_btn, (200, 100))
 
 menu_btn = get_button(button_img, 32, 48, 32, 16)
 menu_btn = pygame.transform.scale(menu_btn, (200, 100))
@@ -797,7 +801,7 @@ h_resume_btm = pygame.transform.scale(h_resume_btm, (400, 100))
 # ========== BUTTON POSITION ==========
 start_btn = Button(SCREEN_WIDTH // 2 - 265, (SCREEN_HEIGHT // 2 - 100), start_btn)
 settings_btn = Button(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 + 25, settings_btn)
-quit_btn = Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 150, quit_btn)
+credits_btn = Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 150, credits_btn)
 menu_btn = Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 150, menu_btn)
 
 r_continue_btn = Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 100, r_continue_btn)
@@ -905,13 +909,6 @@ def level_complete(elapsed_ms, stars_collected, max_stars=3, title="Level Comple
     title_surf = font.render(title, True, title_color)
     screen.blit(title_surf, (SCREEN_WIDTH // 2 - title_surf.get_width() // 2, 85))
 
-    total_secs = elapsed_ms // 1000
-    mins = total_secs // 60
-    secs = total_secs % 60
-    time_str = f"Time: {mins:02}:{secs:02}"
-    time_surf = font_small.render(time_str, True, (200, 200, 200))
-    screen.blit(time_surf, (SCREEN_WIDTH // 2 - time_surf.get_width() // 2, 195))
-
     star_size = 70
     gap = 24
     total_w = max_stars * star_size + (max_stars - 1) * gap
@@ -919,6 +916,39 @@ def level_complete(elapsed_ms, stars_collected, max_stars=3, title="Level Comple
     for i in range(max_stars):
         img = pygame.transform.scale(star_yellow if i < stars_collected else star_gray, (star_size, star_size))
         screen.blit(img, (sx + i * (star_size + gap), 245))
+
+def draw_credits():
+    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
+
+    panel = pygame.Rect(SCREEN_WIDTH // 2 - 260, SCREEN_HEIGHT // 2 - 200, 520, 400)
+    pygame.draw.rect(screen, (20, 20, 40), panel, border_radius=20)
+    pygame.draw.rect(screen, (80, 160, 255), panel, 3, border_radius=20)
+
+    title_surf = font_medium.render("HELP", True, YELLOW)
+    screen.blit(title_surf, (SCREEN_WIDTH // 2 - title_surf.get_width() // 2, panel.y + 20))
+
+    lines = [
+        ("Controls", WHITE),
+        ("A / Arrow Left  —  Walk left", (180, 180, 255)),
+        ("D / Arrow Right  —  Walk right", (180, 180, 255)),
+        ("Space  —  Jump", (180, 180, 255)),
+        ("", WHITE),
+        ("Built with Python pygame", (150, 150, 150)),
+    ]
+    y_offset = panel.y + 90
+    for line, color in lines:
+        surf = font_small.render(line, True, color)
+        screen.blit(surf, (SCREEN_WIDTH // 2 - surf.get_width() // 2, y_offset))
+        y_offset += 30
+
+    close_img = get_button(button_img, 0, 16, 16, 16)
+    close_img = pygame.transform.scale(close_img, (48, 48))
+    close_rect = pygame.Rect(panel.right - 58, panel.y + 10, 48, 48)
+    screen.blit(close_img, close_rect.topleft)
+
+    return close_rect
 
 # ==================== MAIN ====================
 GAME_OVER = 0
@@ -932,7 +962,7 @@ while run:
         draw_wave_title("PATHFINDER", SCREEN_WIDTH // 2, 50, wave_time)
         # draw_grid()
         # draw_cross()
-        if not show_settings and not transition.active:
+        if not show_settings and not show_credits and not transition.active:
             if start_btn.draw():
                 def _start_game():
                     global main_menu, GAME_OVER, level_start_time
@@ -943,8 +973,11 @@ while run:
 
             if settings_btn.draw():
                 show_settings = True
-            if quit_btn.draw():
-                run = False
+            if credits_btn.draw():
+                show_credits = True
+
+        if show_credits and not show_settings:
+            credits_close_rect = draw_credits()
 
         if show_settings:
             close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
@@ -1187,10 +1220,13 @@ while run:
     # ==================== EVENTS ====================
     for event in pygame.event.get():
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if show_credits:
+                if credits_close_rect.collidepoint(event.pos):
+                    show_credits = False
             if show_settings:
                 if close_rect.collidepoint(event.pos):
+                    button_sound.play()
                     show_settings = False
-                    game_paused = False
                 if music_minus.collidepoint(event.pos):
                     music_volume = max(0.0, round(music_volume - 0.1, 1))
                     pygame.mixer.music.set_volume(music_volume)
