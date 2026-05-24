@@ -1,4 +1,5 @@
 import pygame
+import math
 from pygame import mixer
 
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -36,11 +37,12 @@ MAX_HEALTH = 100
 tile_size = 50
 game_over = 0
 main_menu = True
-level = 3
+level = 1
 score = 0
 current_lvl = 0
 life = 3
 game_paused = False
+wave_time = 0
 
 def draw_grid():
     for x in range(0, SCREEN_WIDTH, tile_size):
@@ -119,6 +121,23 @@ jump_sound = pygame.mixer.Sound("assets/audio/jump.wav")
 jump_sound.set_volume(0.5)
 game_over_sound = pygame.mixer.Sound("assets/img/game_over.wav")
 game_over_sound.set_volume(0.5)
+
+# ==================== WAVE TITLE ====================
+def draw_wave_title(text_str, x, y, t):
+    amplitude = 12
+    frequency = 0.4
+    speed = 3
+    spacing = 3
+    wave_font = pygame.font.Font("assets/Font/PixelifySans-VariableFont_wght.ttf", 100)
+    total_width = sum(wave_font.size(c)[0] + spacing for c in text_str)
+    cx = x - total_width // 2
+    for i, char in enumerate(text_str):
+        offset_y = int(amplitude * math.sin(frequency * i + speed * t))
+        char_surf = wave_font.render(char, True, YELLOW)
+        outline = wave_font.render(char, True, (120, 80, 0))
+        screen.blit(outline, (cx + 2, y + offset_y + 2))
+        screen.blit(char_surf, (cx, y + offset_y))
+        cx += wave_font.size(char)[0] + spacing
 
 # ==================== TEXT ====================
 def text(text, font, text_color, x, y):
@@ -874,7 +893,7 @@ def draw_settings_panel():
     return close_rect, music_minus, music_plus, sfx_minus, sfx_plus
 
 # ==================== LEVEL COMPLETE SCREEN ====================
-def draw_level_complete(elapsed_ms, stars_collected, max_stars=3, title="Level Completed", title_color=GREEN):
+def level_complete(elapsed_ms, stars_collected, max_stars=3, title="Level Completed", title_color=GREEN):
     overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 170))
     screen.blit(overlay, (0, 0))
@@ -909,8 +928,10 @@ while run:
 
     if main_menu:
         screen.blit(bg[0], (0, 0))
-        draw_grid()
-        draw_cross()
+        wave_time += clock.get_time() / 1000.0
+        draw_wave_title("PATHFINDER", SCREEN_WIDTH // 2, 50, wave_time)
+        # draw_grid()
+        # draw_cross()
         if not show_settings and not transition.active:
             if start_btn.draw():
                 def _start_game():
@@ -931,8 +952,8 @@ while run:
     else:
         bg_index = min(level, len(bg) - 1)
         screen.blit(bg[bg_index], (0, 0))
-        draw_grid()
-        draw_cross()
+        # draw_grid()
+        # draw_cross()
 
         for i in range(3):
             img = star_yellow if i < score else star_gray
@@ -971,7 +992,7 @@ while run:
             if settings_btn.draw():
                 show_settings = True
             if not transition.active and menu_btn.draw():
-                def pause_to_menu():
+                def pause():
                     global main_menu, game_paused, life, level, score, GAME_OVER, death_time, menu_return_time
                     global show_level_complete, level_start_time
                     main_menu = True
@@ -988,7 +1009,7 @@ while run:
                     levels(0)
                     player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                     level_start_time = pygame.time.get_ticks()
-                transition.start(pause_to_menu)
+                transition.start(pause)
 
         if show_settings:
             close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
@@ -1004,7 +1025,7 @@ while run:
 
             if life - 1 <= 0:
                 if not show_settings:
-                    draw_level_complete(level_elapsed if show_level_complete else 0, score, title="Game Over!", title_color=RED)
+                    level_complete(level_elapsed if show_level_complete else 0, score, title="Game Over!", title_color=RED)
 
                     w_restart_btn.rect.centerx = SCREEN_WIDTH // 2 - 50
                     w_restart_btn.rect.y = 370
@@ -1031,7 +1052,7 @@ while run:
                         show_settings = True
 
                     if not transition.active and w_home_btn.draw():
-                        def c_menu():
+                        def r_menu():
                             global main_menu, life, level, score, GAME_OVER, death_time, menu_return_time
                             global show_level_complete, level_start_time
                             main_menu = True
@@ -1047,7 +1068,7 @@ while run:
                             levels(0)
                             player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                             level_start_time = pygame.time.get_ticks()
-                        transition.start(c_menu)
+                        transition.start(r_menu)
 
             else:
                 text("You Died", font_large, RED, (SCREEN_WIDTH // 2 - 210), SCREEN_HEIGHT // 2 - 45)
@@ -1055,7 +1076,7 @@ while run:
                 if elapsed >= 2000 and not transition.active:
                     spawn = player.checkpoint_pos if player.checkpoint_pos else (-50, SCREEN_HEIGHT - 100)
                     def r_respawn(spawn_pos):
-                        def _respawn():
+                        def respawn():
                             global life, GAME_OVER, death_time, level_start_time
                             life -= 1
                             levels(current_lvl)
@@ -1064,7 +1085,7 @@ while run:
                             death_time = None
                             GAME_OVER = 0
                             level_start_time = pygame.time.get_ticks()
-                        return _respawn
+                        return respawn
                     transition.start(r_respawn(spawn))
 
         else:
@@ -1077,7 +1098,7 @@ while run:
                 level_elapsed = pygame.time.get_ticks() - level_start_time
 
             if not show_settings:
-                draw_level_complete(level_elapsed, score)
+                level_complete(level_elapsed, score)
 
                 is_last_level = level >= len(MAP)
 
@@ -1088,7 +1109,7 @@ while run:
                     w_settings_btn.rect.y = 370
 
                     if not transition.active and w_restart_btn.draw():
-                        def _lc_restart():
+                        def w_restart():
                             global score, GAME_OVER, show_level_complete, level_start_time
                             show_level_complete = False
                             score = 0
@@ -1097,7 +1118,7 @@ while run:
                             player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                             level_start_time = pygame.time.get_ticks()
                             GAME_OVER = 0
-                        transition.start(_lc_restart)
+                        transition.start(w_restart)
 
                     if w_settings_btn.draw():
                         show_settings = True
@@ -1111,7 +1132,7 @@ while run:
                     w_settings_btn.rect.y = 370
 
                     if not transition.active and w_restart_btn.draw():
-                        def t_restart():
+                        def w_restart():
                             global score, GAME_OVER, show_level_complete, level_start_time
                             show_level_complete = False
                             score = 0
@@ -1120,12 +1141,12 @@ while run:
                             player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                             level_start_time = pygame.time.get_ticks()
                             GAME_OVER = 0
-                        transition.start(t_restart)
+                        transition.start(w_restart)
 
                     if not transition.active and w_next_btn.draw():
                         _next = level
-                        def t_next(next_lvl):
-                            def _go_next():
+                        def w_next(next_lvl):
+                            def w_next():
                                 global level, score, GAME_OVER, show_level_complete, level_start_time
                                 saved_health = player.health
                                 level = next_lvl + 1
@@ -1137,15 +1158,15 @@ while run:
                                 show_level_complete = False
                                 level_start_time = pygame.time.get_ticks()
                                 GAME_OVER = 0
-                            return _go_next
-                        transition.start(t_next(_next))
+                            return w_next
+                        transition.start(w_next(_next))
 
                     if w_settings_btn.draw():
                         show_settings = True
 
-                # Home button always shown
+                # home button always shown
                 if not transition.active and w_home_btn.draw():
-                    def t_to_menu():
+                    def menu():
                         global main_menu, life, level, score, GAME_OVER, show_level_complete
                         global death_time, menu_return_time, level_start_time
                         main_menu = True
@@ -1161,7 +1182,7 @@ while run:
                         levels(0)
                         player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                         level_start_time = pygame.time.get_ticks()
-                    transition.start(t_to_menu)
+                    transition.start(menu)
 
     # ==================== EVENTS ====================
     for event in pygame.event.get():
