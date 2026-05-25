@@ -113,16 +113,16 @@ lvl_3 = pygame.transform.scale(lvl_3, (SCREEN_WIDTH, SCREEN_HEIGHT))
 bg = [menu_bg, lvl_1, lvl_2, lvl_3]
 
 # ==================== SOUND ====================
-pygame.mixer.music.load("assets/img/music.wav")
+pygame.mixer.music.load("assets/music/overworld.ogg")
 pygame.mixer.music.play(-1, 0.0, 5000)
-star_sound = pygame.mixer.Sound("assets/audio/notice.wav")
+star_sound = pygame.mixer.Sound("assets/audio/notice.ogg")
 star_sound.set_volume(0.5)
-jump_sound = pygame.mixer.Sound("assets/audio/jump.wav")
+jump_sound = pygame.mixer.Sound("assets/audio/jump.ogg")
 jump_sound.set_volume(0.5)
-game_over_sound = pygame.mixer.Sound("assets/img/game_over.wav")
+game_over_sound = pygame.mixer.Sound("assets/img/game_over.ogg")
 game_over_sound.set_volume(0.5)
 
-button_sound = pygame.mixer.Sound("assets/audio/emilianodleon-select-button-ui-395763.wav")
+button_sound = pygame.mixer.Sound("assets/audio/emilianodleon-select-button-ui-395763.ogg")
 
 # ==================== TITLE ====================
 def draw_title(text_str, x, y, t):
@@ -205,7 +205,7 @@ MAP = [
         [1,2,0,2,1,0,0,0,0,0,0,0,0,0,0,0,0,2],
         [0,0,0,0,6,0,0,0,0,0,8,0,9,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,2,2,0,2,2,2,2,0,0],
-        [0,0,0,0,2,0,0,2,0,0,1,0,0,0,0,0,0,0],
+        [0,0,0,3,2,0,0,2,0,0,1,0,0,0,0,0,0,0],
         [2,2,2,2,1,2,0,0,0,0,0,0,0,0,0,0,0,0]
     ],
     [
@@ -221,7 +221,7 @@ MAP = [
         [0,0,1,1,1,0,0,0,0,0,0,0,0,0,2,1,1,1],
         [5,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0],
         [0,0,0,0,0,0,2,0,0,4,0,0,2,0,0,0,0,0],
-        [0,0,0,0,0,2,1,3,3,3,3,3,1,5,0,0,3,6],
+        [0,0,0,0,0,2,1,3,3,3,3,3,1,5,0,9,3,6],
         [2,2,2,0,0,0,1,1,1,1,1,1,1,0,0,2,2,2]
     ],
     [
@@ -951,303 +951,311 @@ def draw_credits():
 
 # ==================== MAIN ====================
 GAME_OVER = 0
-run = True
-while run:
-    clock.tick(FPS)
 
-    if main_menu:
-        screen.blit(bg[0], (0, 0))
-        wave_time += clock.get_time() / 1000.0
-        draw_title("PATHFINDER", SCREEN_WIDTH // 2, 50, wave_time)
-        # draw_grid()
-        # draw_cross()
-        if not show_settings and not show_credits and not transition.active:
-            if start_btn.draw():
-                def _start_game():
-                    global main_menu, GAME_OVER, level_start_time
-                    main_menu = False
-                    GAME_OVER = 0
-                    level_start_time = pygame.time.get_ticks()
-                transition.start(_start_game)
+async def main():
+    global run, GAME_OVER, wave_time, main_menu, show_settings, show_credits
+    global game_paused, death_time, show_level_complete, level_elapsed
+    global music_volume, sfx_volume, credits_close_rect
 
-            if settings_btn.draw():
-                show_settings = True
-            if credits_btn.draw():
-                show_credits = True
-
-        if show_credits and not show_settings:
-            credits_close_rect = draw_credits()
-
-        if show_settings:
-            close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
-
-    else:
-        bg_index = min(level, len(bg) - 1)
-        screen.blit(bg[bg_index], (0, 0))
-        # draw_grid()
-        # draw_cross()
-
-        for i in range(3):
-            img = star_yellow if i < score else star_gray
-            screen.blit(img, (10 + i * 35, 42))
-
-        draw_hearts(life)
-
-        if not game_paused and not show_level_complete:
-            GAME_OVER = player.update(world, game_over)
-            platform_group.update()
-            enemy_group.update()
-            checkpoint_group.update()
-
-        world.draw()
-        spike_group.draw(screen)
-        platform_group.draw(screen)
-        door_group.draw(screen)
-        star_group.draw(screen)
-        checkpoint_group.draw(screen)
-        enemy_group.draw(screen)
-        player.draw(screen)
-        if not player.dead and not player.won:
-            draw_health_bar(player.x + player.rect.width // 2 - 20, player.y + 48, player.health)
-
-        if not show_settings and not game_paused and not show_level_complete and not transition.active:
-            if hamburger_btn.draw():
-                game_paused = True
-
-        if game_paused and not show_settings:
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 160))
-            screen.blit(overlay, (0, 0))
-            text("GAME PAUSED", font_large, YELLOW, SCREEN_WIDTH // 2 - 340, SCREEN_HEIGHT // 2 - 220)
-            if h_resume_btm.draw():
-                game_paused = False
-            if settings_btn.draw():
-                show_settings = True
-            if not transition.active and menu_btn.draw():
-                def pause():
-                    global main_menu, game_paused, life, level, score, GAME_OVER, death_time, menu_return_time
-                    global show_level_complete, level_start_time
-                    main_menu = True
-                    game_paused = False
-                    life = 3
-                    level = 1
-                    score = 0
-                    GAME_OVER = 0
-                    death_time = None
-                    menu_return_time = None
-                    show_level_complete = False
-                    collected_stars.clear()
-                    activated_checkpoints.clear()
-                    levels(0)
-                    player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
-                    level_start_time = pygame.time.get_ticks()
-                transition.start(pause)
-
-        if show_settings:
-            close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
-
-        # ===== PLAYER DIED =====
-        if GAME_OVER == -1:
-            current = pygame.time.get_ticks()
-
-            if death_time is None:
-                death_time = current
-
-            elapsed = current - death_time
-
-            if life - 1 <= 0:
-                if not show_settings:
-                    level_complete(level_elapsed if show_level_complete else 0, score, title="Game Over!", title_color=RED)
-
-                    w_restart_btn.rect.centerx = SCREEN_WIDTH // 2 - 50
-                    w_restart_btn.rect.y = 370
-                    w_settings_btn.rect.centerx = SCREEN_WIDTH // 2 + 50
-                    w_settings_btn.rect.y = 370
-
-                    if not transition.active and w_restart_btn.draw():
-                        def restart_game():
-                            global life, level, score, GAME_OVER, death_time, show_level_complete, level_start_time
-                            collected_stars.clear()
-                            activated_checkpoints.clear()
-                            level = 1
-                            score = 0
-                            life = 3
-                            death_time = None
-                            GAME_OVER = 0
-                            show_level_complete = False
-                            levels(0)
-                            player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
-                            level_start_time = pygame.time.get_ticks()
-                        transition.start(restart_game)
-
-                    if w_settings_btn.draw():
-                        show_settings = True
-
-                    if not transition.active and w_home_btn.draw():
-                        def r_menu():
-                            global main_menu, life, level, score, GAME_OVER, death_time, menu_return_time
-                            global show_level_complete, level_start_time
-                            main_menu = True
-                            life = 3
-                            level = 1
-                            score = 0
-                            GAME_OVER = 0
-                            death_time = None
-                            menu_return_time = None
-                            show_level_complete = False
-                            collected_stars.clear()
-                            activated_checkpoints.clear()
-                            levels(0)
-                            player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
-                            level_start_time = pygame.time.get_ticks()
-                        transition.start(r_menu)
-
-            else:
-                text("You Died", font_large, RED, (SCREEN_WIDTH // 2 - 210), SCREEN_HEIGHT // 2 - 45)
-
-                if elapsed >= 2000 and not transition.active:
-                    spawn = player.checkpoint_pos if player.checkpoint_pos else (-50, SCREEN_HEIGHT - 100)
-                    def r_respawn(spawn_pos):
-                        def respawn():
-                            global life, GAME_OVER, death_time, level_start_time
-                            life -= 1
-                            levels(current_lvl)
-                            player.reset(spawn_pos[0], spawn_pos[1], character_sprite)
-                            player.checkpoint_pos = spawn_pos
-                            death_time = None
-                            GAME_OVER = 0
-                            level_start_time = pygame.time.get_ticks()
-                        return respawn
-                    transition.start(r_respawn(spawn))
-
+    run = True
+    while run:
+        clock.tick(FPS)
+    
+        if main_menu:
+            screen.blit(bg[0], (0, 0))
+            wave_time += clock.get_time() / 1000.0
+            draw_title("PATHFINDER", SCREEN_WIDTH // 2, 50, wave_time)
+            # draw_grid()
+            # draw_cross()
+            if not show_settings and not show_credits and not transition.active:
+                if start_btn.draw():
+                    def _start_game():
+                        global main_menu, GAME_OVER, level_start_time
+                        main_menu = False
+                        GAME_OVER = 0
+                        level_start_time = pygame.time.get_ticks()
+                    transition.start(_start_game)
+    
+                if settings_btn.draw():
+                    show_settings = True
+                if credits_btn.draw():
+                    show_credits = True
+    
+            if show_credits and not show_settings:
+                credits_close_rect = draw_credits()
+    
+            if show_settings:
+                close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
+    
         else:
-            death_time = None
-
-        # ===== WIN =====
-        if GAME_OVER == 1:
-            if not show_level_complete:
-                show_level_complete = True
-                level_elapsed = pygame.time.get_ticks() - level_start_time
-
-            if not show_settings:
-                level_complete(level_elapsed, score)
-
-                is_last_level = level >= len(MAP)
-
-                if is_last_level:
-                    w_restart_btn.rect.centerx = SCREEN_WIDTH // 2 - 50
-                    w_restart_btn.rect.y = 370
-                    w_settings_btn.rect.centerx = SCREEN_WIDTH // 2 + 50
-                    w_settings_btn.rect.y = 370
-
-                    if not transition.active and w_restart_btn.draw():
-                        def w_restart():
-                            global score, GAME_OVER, show_level_complete, level_start_time
-                            show_level_complete = False
-                            score = 0
-                            collected_stars.clear()
-                            levels(current_lvl)
-                            player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
-                            level_start_time = pygame.time.get_ticks()
-                            GAME_OVER = 0
-                        transition.start(w_restart)
-
-                    if w_settings_btn.draw():
-                        show_settings = True
-
-                else:
-                    w_restart_btn.rect.centerx = SCREEN_WIDTH // 2 - 90
-                    w_restart_btn.rect.y = 370
-                    w_next_btn.rect.centerx = SCREEN_WIDTH // 2
-                    w_next_btn.rect.y = 370
-                    w_settings_btn.rect.centerx = SCREEN_WIDTH // 2 + 90
-                    w_settings_btn.rect.y = 370
-
-                    if not transition.active and w_restart_btn.draw():
-                        def w_restart():
-                            global score, GAME_OVER, show_level_complete, level_start_time
-                            show_level_complete = False
-                            score = 0
-                            collected_stars.clear()
-                            levels(current_lvl)
-                            player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
-                            level_start_time = pygame.time.get_ticks()
-                            GAME_OVER = 0
-                        transition.start(w_restart)
-
-                    if not transition.active and w_next_btn.draw():
-                        _next = level
-                        def w_next(next_lvl):
-                            def w_next():
-                                global level, score, GAME_OVER, show_level_complete, level_start_time
-                                saved_health = player.health
-                                level = next_lvl + 1
-                                collected_stars.clear()
-                                levels(next_lvl)
-                                score = 0
-                                player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
-                                player.health = saved_health
-                                show_level_complete = False
-                                level_start_time = pygame.time.get_ticks()
-                                GAME_OVER = 0
-                            return w_next
-                        transition.start(w_next(_next))
-
-                    if w_settings_btn.draw():
-                        show_settings = True
-
-                # home button always shown
-                if not transition.active and w_home_btn.draw():
-                    def menu():
-                        global main_menu, life, level, score, GAME_OVER, show_level_complete
-                        global death_time, menu_return_time, level_start_time
+            bg_index = min(level, len(bg) - 1)
+            screen.blit(bg[bg_index], (0, 0))
+            # draw_grid()
+            # draw_cross()
+    
+            for i in range(3):
+                img = star_yellow if i < score else star_gray
+                screen.blit(img, (10 + i * 35, 42))
+    
+            draw_hearts(life)
+    
+            if not game_paused and not show_level_complete:
+                GAME_OVER = player.update(world, game_over)
+                platform_group.update()
+                enemy_group.update()
+                checkpoint_group.update()
+    
+            world.draw()
+            spike_group.draw(screen)
+            platform_group.draw(screen)
+            door_group.draw(screen)
+            star_group.draw(screen)
+            checkpoint_group.draw(screen)
+            enemy_group.draw(screen)
+            player.draw(screen)
+            if not player.dead and not player.won:
+                draw_health_bar(player.x + player.rect.width // 2 - 20, player.y + 48, player.health)
+    
+            if not show_settings and not game_paused and not show_level_complete and not transition.active:
+                if hamburger_btn.draw():
+                    game_paused = True
+    
+            if game_paused and not show_settings:
+                overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 160))
+                screen.blit(overlay, (0, 0))
+                text("GAME PAUSED", font_large, YELLOW, SCREEN_WIDTH // 2 - 340, SCREEN_HEIGHT // 2 - 220)
+                if h_resume_btm.draw():
+                    game_paused = False
+                if settings_btn.draw():
+                    show_settings = True
+                if not transition.active and menu_btn.draw():
+                    def pause():
+                        global main_menu, game_paused, life, level, score, GAME_OVER, death_time, menu_return_time
+                        global show_level_complete, level_start_time
                         main_menu = True
+                        game_paused = False
                         life = 3
                         level = 1
                         score = 0
                         GAME_OVER = 0
-                        show_level_complete = False
                         death_time = None
                         menu_return_time = None
+                        show_level_complete = False
                         collected_stars.clear()
                         activated_checkpoints.clear()
                         levels(0)
                         player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
                         level_start_time = pygame.time.get_ticks()
-                    transition.start(menu)
-
-    # ==================== EVENTS ====================
-    for event in pygame.event.get():
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if show_credits:
-                if credits_close_rect.collidepoint(event.pos):
-                    show_credits = False
+                    transition.start(pause)
+    
             if show_settings:
-                if close_rect.collidepoint(event.pos):
-                    button_sound.play()
-                    show_settings = False
-                if music_minus.collidepoint(event.pos):
-                    music_volume = max(0.0, round(music_volume - 0.1, 1))
-                    pygame.mixer.music.set_volume(music_volume)
-                if music_plus.collidepoint(event.pos):
-                    music_volume = min(1.0, round(music_volume + 0.1, 1))
-                    pygame.mixer.music.set_volume(music_volume)
-                if sfx_minus.collidepoint(event.pos):
-                    sfx_volume = max(0.0, round(sfx_volume - 0.1, 1))
-                    star_sound.set_volume(sfx_volume)
-                    jump_sound.set_volume(sfx_volume)
-                    game_over_sound.set_volume(sfx_volume)
-                if sfx_plus.collidepoint(event.pos):
-                    sfx_volume = min(1.0, round(sfx_volume + 0.1, 1))
-                    star_sound.set_volume(sfx_volume)
-                    jump_sound.set_volume(sfx_volume)
-                    game_over_sound.set_volume(sfx_volume)
-        if event.type == pygame.QUIT:
-            run = False
+                close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
+    
+            # ===== PLAYER DIED =====
+            if GAME_OVER == -1:
+                current = pygame.time.get_ticks()
+    
+                if death_time is None:
+                    death_time = current
+    
+                elapsed = current - death_time
+    
+                if life - 1 <= 0:
+                    if not show_settings:
+                        level_complete(level_elapsed if show_level_complete else 0, score, title="Game Over!", title_color=RED)
+    
+                        w_restart_btn.rect.centerx = SCREEN_WIDTH // 2 - 50
+                        w_restart_btn.rect.y = 370
+                        w_settings_btn.rect.centerx = SCREEN_WIDTH // 2 + 50
+                        w_settings_btn.rect.y = 370
+    
+                        if not transition.active and w_restart_btn.draw():
+                            def restart_game():
+                                global life, level, score, GAME_OVER, death_time, show_level_complete, level_start_time
+                                collected_stars.clear()
+                                activated_checkpoints.clear()
+                                level = 1
+                                score = 0
+                                life = 3
+                                death_time = None
+                                GAME_OVER = 0
+                                show_level_complete = False
+                                levels(0)
+                                player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                                level_start_time = pygame.time.get_ticks()
+                            transition.start(restart_game)
+    
+                        if w_settings_btn.draw():
+                            show_settings = True
+    
+                        if not transition.active and w_home_btn.draw():
+                            def r_menu():
+                                global main_menu, life, level, score, GAME_OVER, death_time, menu_return_time
+                                global show_level_complete, level_start_time
+                                main_menu = True
+                                life = 3
+                                level = 1
+                                score = 0
+                                GAME_OVER = 0
+                                death_time = None
+                                menu_return_time = None
+                                show_level_complete = False
+                                collected_stars.clear()
+                                activated_checkpoints.clear()
+                                levels(0)
+                                player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                                level_start_time = pygame.time.get_ticks()
+                            transition.start(r_menu)
+    
+                else:
+                    text("You Died", font_large, RED, (SCREEN_WIDTH // 2 - 210), SCREEN_HEIGHT // 2 - 45)
+    
+                    if elapsed >= 2000 and not transition.active:
+                        spawn = player.checkpoint_pos if player.checkpoint_pos else (-50, SCREEN_HEIGHT - 100)
+                        def r_respawn(spawn_pos):
+                            def respawn():
+                                global life, GAME_OVER, death_time, level_start_time
+                                life -= 1
+                                levels(current_lvl)
+                                player.reset(spawn_pos[0], spawn_pos[1], character_sprite)
+                                player.checkpoint_pos = spawn_pos
+                                death_time = None
+                                GAME_OVER = 0
+                                level_start_time = pygame.time.get_ticks()
+                            return respawn
+                        transition.start(r_respawn(spawn))
+    
+            else:
+                death_time = None
+    
+            # ===== WIN =====
+            if GAME_OVER == 1:
+                if not show_level_complete:
+                    show_level_complete = True
+                    level_elapsed = pygame.time.get_ticks() - level_start_time
+    
+                if not show_settings:
+                    level_complete(level_elapsed, score)
+    
+                    is_last_level = level >= len(MAP)
+    
+                    if is_last_level:
+                        w_restart_btn.rect.centerx = SCREEN_WIDTH // 2 - 50
+                        w_restart_btn.rect.y = 370
+                        w_settings_btn.rect.centerx = SCREEN_WIDTH // 2 + 50
+                        w_settings_btn.rect.y = 370
+    
+                        if not transition.active and w_restart_btn.draw():
+                            def w_restart():
+                                global score, GAME_OVER, show_level_complete, level_start_time
+                                show_level_complete = False
+                                score = 0
+                                collected_stars.clear()
+                                levels(current_lvl)
+                                player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                                level_start_time = pygame.time.get_ticks()
+                                GAME_OVER = 0
+                            transition.start(w_restart)
+    
+                        if w_settings_btn.draw():
+                            show_settings = True
+    
+                    else:
+                        w_restart_btn.rect.centerx = SCREEN_WIDTH // 2 - 90
+                        w_restart_btn.rect.y = 370
+                        w_next_btn.rect.centerx = SCREEN_WIDTH // 2
+                        w_next_btn.rect.y = 370
+                        w_settings_btn.rect.centerx = SCREEN_WIDTH // 2 + 90
+                        w_settings_btn.rect.y = 370
+    
+                        if not transition.active and w_restart_btn.draw():
+                            def w_restart():
+                                global score, GAME_OVER, show_level_complete, level_start_time
+                                show_level_complete = False
+                                score = 0
+                                collected_stars.clear()
+                                levels(current_lvl)
+                                player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                                level_start_time = pygame.time.get_ticks()
+                                GAME_OVER = 0
+                            transition.start(w_restart)
+    
+                        if not transition.active and w_next_btn.draw():
+                            _next = level
+                            def w_next(next_lvl):
+                                def w_next():
+                                    global level, score, GAME_OVER, show_level_complete, level_start_time
+                                    saved_health = player.health
+                                    level = next_lvl + 1
+                                    collected_stars.clear()
+                                    levels(next_lvl)
+                                    score = 0
+                                    player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                                    player.health = saved_health
+                                    show_level_complete = False
+                                    level_start_time = pygame.time.get_ticks()
+                                    GAME_OVER = 0
+                                return w_next
+                            transition.start(w_next(_next))
+    
+                        if w_settings_btn.draw():
+                            show_settings = True
+    
+                    # home button always shown
+                    if not transition.active and w_home_btn.draw():
+                        def menu():
+                            global main_menu, life, level, score, GAME_OVER, show_level_complete
+                            global death_time, menu_return_time, level_start_time
+                            main_menu = True
+                            life = 3
+                            level = 1
+                            score = 0
+                            GAME_OVER = 0
+                            show_level_complete = False
+                            death_time = None
+                            menu_return_time = None
+                            collected_stars.clear()
+                            activated_checkpoints.clear()
+                            levels(0)
+                            player.reset(-50, SCREEN_HEIGHT - 100, character_sprite)
+                            level_start_time = pygame.time.get_ticks()
+                        transition.start(menu)
+    
+        # ==================== EVENTS ====================
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if show_credits:
+                    if credits_close_rect.collidepoint(event.pos):
+                        show_credits = False
+                if show_settings:
+                    if close_rect.collidepoint(event.pos):
+                        button_sound.play()
+                        show_settings = False
+                    if music_minus.collidepoint(event.pos):
+                        music_volume = max(0.0, round(music_volume - 0.1, 1))
+                        pygame.mixer.music.set_volume(music_volume)
+                    if music_plus.collidepoint(event.pos):
+                        music_volume = min(1.0, round(music_volume + 0.1, 1))
+                        pygame.mixer.music.set_volume(music_volume)
+                    if sfx_minus.collidepoint(event.pos):
+                        sfx_volume = max(0.0, round(sfx_volume - 0.1, 1))
+                        star_sound.set_volume(sfx_volume)
+                        jump_sound.set_volume(sfx_volume)
+                        game_over_sound.set_volume(sfx_volume)
+                    if sfx_plus.collidepoint(event.pos):
+                        sfx_volume = min(1.0, round(sfx_volume + 0.1, 1))
+                        star_sound.set_volume(sfx_volume)
+                        jump_sound.set_volume(sfx_volume)
+                        game_over_sound.set_volume(sfx_volume)
+            if event.type == pygame.QUIT:
+                run = False
 
-    transition.update()
-    transition.draw()
+        transition.update()
+        transition.draw()
 
-    pygame.display.update()
+        pygame.display.update()
+        await asyncio.sleep(0)
 
-pygame.quit()
+
+asyncio.run(main())
