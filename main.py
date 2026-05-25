@@ -916,7 +916,7 @@ def level_complete(elapsed_ms, stars_collected, max_stars=3, title="Level Comple
         img = pygame.transform.scale(star_yellow if i < stars_collected else star_gray, (star_size, star_size))
         screen.blit(img, (sx + i * (star_size + gap), 245))
 
-def draw_credits():
+def draw_info():
     overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 180))
     screen.blit(overlay, (0, 0))
@@ -982,7 +982,7 @@ async def main():
                     show_credits = True
     
             if show_credits and not show_settings:
-                credits_close_rect = draw_credits()
+                credits_close_rect = draw_info()
     
             if show_settings:
                 close_rect, music_minus, music_plus, sfx_minus, sfx_plus = draw_settings_panel()
