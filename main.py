@@ -1,5 +1,4 @@
-import pygame
-import math
+import pygame, math, asyncio
 from pygame import mixer
 
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -12,10 +11,10 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Pathfinder")
 
 # font
-font = pygame.font.Font("assets/Font/PixelifySans-VariableFont_wght.ttf", 70)
-font_small = pygame.font.Font("assets/Font/PixelifySans-VariableFont_wght.ttf", 24)
-font_medium = pygame.font.Font("assets/Font/PixelifySans-VariableFont_wght.ttf", 42)
-font_large = pygame.font.Font("assets/Font/PixelifySans-VariableFont_wght.ttf", 110)
+font = pygame.font.Font("assets/Font/Tiny5-Regular.ttf", 70)
+font_small = pygame.font.Font("assets/Font/Tiny5-Regular.ttf", 24)
+font_medium = pygame.font.Font("assets/Font/Tiny5-Regular.ttf", 42)
+font_large = pygame.font.Font("assets/Font/Tiny5-Regular.ttf", 110)
 
 # Colors
 BLUE = (0, 0, 255)
@@ -125,22 +124,22 @@ game_over_sound.set_volume(0.5)
 
 button_sound = pygame.mixer.Sound("assets/audio/emilianodleon-select-button-ui-395763.wav")
 
-# ==================== WAVE TITLE ====================
-def draw_wave_title(text_str, x, y, t):
-    amplitude = 12
-    frequency = 0.4
-    speed = 3
+# ==================== TITLE ====================
+def draw_title(text_str, x, y, t):
+    arc_depth = 30
     spacing = 3
-    wave_font = pygame.font.Font("assets/Font/PixelifySans-VariableFont_wght.ttf", 100)
-    total_width = sum(wave_font.size(c)[0] + spacing for c in text_str)
+    total_width = sum(font_large.size(c)[0] + spacing for c in text_str)
     cx = x - total_width // 2
+
     for i, char in enumerate(text_str):
-        offset_y = int(amplitude * math.sin(frequency * i + speed * t))
-        char_surf = wave_font.render(char, True, YELLOW)
-        outline = wave_font.render(char, True, (120, 80, 0))
+        t_pos = (i / max(len(text_str) - 1, 1)) * 2 - 1
+        offset_y = int(arc_depth * (1 - t_pos ** 2) * -1 + arc_depth)
+
+        char_surf = font_large.render(char, True, YELLOW)
+        outline = font_large.render(char, True, (120, 80, 0))
         screen.blit(outline, (cx + 2, y + offset_y + 2))
         screen.blit(char_surf, (cx, y + offset_y))
-        cx += wave_font.size(char)[0] + spacing
+        cx += font_large.size(char)[0] + spacing
 
 # ==================== TEXT ====================
 def text(text, font, text_color, x, y):
@@ -959,7 +958,7 @@ while run:
     if main_menu:
         screen.blit(bg[0], (0, 0))
         wave_time += clock.get_time() / 1000.0
-        draw_wave_title("PATHFINDER", SCREEN_WIDTH // 2, 50, wave_time)
+        draw_title("PATHFINDER", SCREEN_WIDTH // 2, 50, wave_time)
         # draw_grid()
         # draw_cross()
         if not show_settings and not show_credits and not transition.active:
